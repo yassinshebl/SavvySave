@@ -10,6 +10,9 @@
 
 A smart financial planning application built for Egyptian users. Set up your profile once with your income and expenses, then create unlimited savings plans — manually or with AI. Track deposits, log spending, and get personalized AI-powered financial advice from Gemini.
 
+Supports **light & dark mode** with persistent preference.
+
+
 🌐 **Live App:** [https://savvysave-4f9cc.web.app](https://savvysave-4f9cc.web.app)
 
 ---
@@ -51,12 +54,18 @@ A smart financial planning application built for Egyptian users. Set up your pro
 
 ### 📈 Plan Details
 - **Savings tracker** with deposit & withdrawal support and full history log
+  - Loading state prevents duplicate submissions
+  - Remove incorrect entries directly from history (auto-adjusts total savings)
 - **Financial overview chart** (horizontal bar chart via Recharts):
   - Income vs. Static Expenses vs. Dynamic Spending vs. Remaining
 - **Due date banner** with days remaining, months estimate, and required monthly savings
 - **Spending log** — add dynamic one-off expenses per plan
 - **Static expenses list** — pulled from your profile (read-only in plan view)
 - **AI Advisor** — click ✨ to get real-time financial advice from Gemini on whether you're on track
+
+### 🎨 Appearance
+- **Light & Dark mode** — toggle from the navbar, preference saved in localStorage
+- Clean, modern UI with smooth theme transitions
 
 ---
 
@@ -66,7 +75,7 @@ A smart financial planning application built for Egyptian users. Set up your pro
 |-------|-----------|
 | **Frontend** | React 19, TypeScript 5.8 |
 | **Build Tool** | Vite 6 |
-| **Styling** | Tailwind CSS (CDN) + Inter font |
+| **Styling** | Tailwind CSS (CDN) + Inter font + CSS custom properties for theming |
 | **Backend** | Firebase (Firestore, Auth) |
 | **AI** | Google Gemini 2.0 Flash via `@google/genai` |
 | **Charts** | Recharts |
@@ -78,7 +87,7 @@ A smart financial planning application built for Egyptian users. Set up your pro
 
 ```
 savvysave/
-├── index.html                 # Entry HTML with Tailwind config & custom scrollbar
+├── index.html                 # Entry HTML with Tailwind config, theme variables & scrollbar
 ├── index.tsx                  # React root mount
 ├── App.tsx                    # Main app — routing, auth state, profile management
 ├── types.ts                   # TypeScript interfaces (User, UserProfile, SavingsPlan, Expense, etc.)
@@ -207,6 +216,13 @@ interface UserProfile {
   staticExpenses: Expense[];
 }
 
+interface SavingsEntry {
+  id: string;
+  amount: number;        // positive = deposit, negative = withdrawal
+  note: string;
+  date: string;
+}
+
 interface SavingsPlan {
   id: string;
   name: string;
@@ -223,6 +239,7 @@ interface Expense {
   name: string;
   amount: number;               // calculated monthly total
   category: string;
+  date: string;
   isStatic: boolean;
   frequency?: 'monthly' | 'custom';
   costPerOccurrence?: number;   // for custom frequency

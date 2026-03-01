@@ -122,4 +122,24 @@ export const storageService = {
       throw error;
     }
   },
+
+  deleteSavingsEntry: async (userId: string, planId: string, entryId: string): Promise<void> => {
+    try {
+      const ref = getPlanDocRef(userId, planId);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+
+      const plan = snap.data() as SavingsPlan;
+      const updatedHistory = (plan.savingsHistory || []).filter(e => e.id !== entryId);
+      const newTotal = updatedHistory.reduce((sum, e) => sum + e.amount, 0);
+
+      await updateDoc(ref, {
+        savingsHistory: updatedHistory,
+        currentSavings: newTotal,
+      });
+    } catch (error) {
+      console.error('Error deleting savings entry:', error);
+      throw error;
+    }
+  },
 };

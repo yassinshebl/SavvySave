@@ -20,11 +20,14 @@ export const PlanDetails: React.FC<PlanDetailsProps> = ({ userId, profile, plan,
   const [advice, setAdvice] = useState<string | null>(null);
   const [loadingAdvice, setLoadingAdvice] = useState(false);
 
-  // Savings modal state
+  // Savings modal state & loading
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [savingsAction, setSavingsAction] = useState<'deposit' | 'withdraw'>('deposit');
   const [savingsAmount, setSavingsAmount] = useState('');
   const [savingsNote, setSavingsNote] = useState('');
+  const [savingsLoading, setSavingsLoading] = useState(false);
+  const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
+  const [confirmDeleteEntry, setConfirmDeleteEntry] = useState<SavingsEntry | null>(null);
 
   // Use profile income/expenses
   const totalStatic = profile.staticExpenses.reduce((acc, curr) => acc + curr.amount, 0);
@@ -57,21 +60,26 @@ export const PlanDetails: React.FC<PlanDetailsProps> = ({ userId, profile, plan,
 
   const handleSavingsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!savingsAmount) return;
+    if (!savingsAmount || savingsLoading) return;
 
-    const amount = parseFloat(savingsAmount);
-    const entry: SavingsEntry = {
-      id: Date.now().toString(),
-      amount: savingsAction === 'deposit' ? amount : -amount,
-      note: savingsNote || (savingsAction === 'deposit' ? 'Deposit' : 'Withdrawal'),
-      date: new Date().toISOString(),
-    };
+    setSavingsLoading(true);
+    try {
+      const amount = parseFloat(savingsAmount);
+      const entry: SavingsEntry = {
+        id: Date.now().toString(),
+        amount: savingsAction === 'deposit' ? amount : -amount,
+        note: savingsNote || (savingsAction === 'deposit' ? 'Deposit' : 'Withdrawal'),
+        date: new Date().toISOString(),
+      };
 
-    await storageService.updateSavings(userId, plan.id, entry);
-    setSavingsAmount('');
-    setSavingsNote('');
-    setShowSavingsModal(false);
-    onUpdate();
+      await storageService.updateSavings(userId, plan.id, entry);
+      setSavingsAmount('');
+      setSavingsNote('');
+      setShowSavingsModal(false);
+      onUpdate();
+    } finally {
+      setSavingsLoading(false);
+    }
   };
 
   const handleGetAdvice = async () => {
@@ -80,6 +88,22 @@ export const PlanDetails: React.FC<PlanDetailsProps> = ({ userId, profile, plan,
     const result = await analyzePlan(plan, profile);
     setAdvice(result);
     setLoadingAdvice(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteEntry) return;
+    const entry = confirmDeleteEntry;
+    setDeletingEntryId(entry.id);
+    setConfirmDeleteEntry(null);
+    try {
+      await storageService.deleteSavingsEntry(userId, plan.id, entry.id);
+      onUpdate();
+    } catch (err) {
+      console.error('Failed to delete entry:', err);
+      alert('Failed to delete entry. Please try again.');
+    } finally {
+      setDeletingEntryId(null);
+    }
   };
 
   const chartData = [
@@ -188,10 +212,11 @@ export const PlanDetails: React.FC<PlanDetailsProps> = ({ userId, profile, plan,
                 <button type="button" onClick={() => setShowSavingsModal(false)} className="flex-1 px-4 py-2 text-gray-400 hover:text-white border border-gray-700 rounded-lg">Cancel</button>
                 <button
                   type="submit"
-                  className={`flex-1 px-4 py-2 rounded-lg text-white font-medium ${savingsAction === 'deposit' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
+                  disabled={savingsLoading}
+                  className={`flex-1 px-4 py-2 rounded-lg text-white font-medium transition-colors ${savingsLoading ? 'opacity-60 cursor-not-allowed' : ''} ${savingsAction === 'deposit' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
                     }`}
                 >
-                  {savingsAction === 'deposit' ? 'Deposit' : 'Withdraw'}
+                  {savingsLoading ? 'Processing…' : savingsAction === 'deposit' ? 'Deposit' : 'Withdraw'}
                 </button>
               </div>
             </form>
@@ -369,6 +394,34 @@ export const PlanDetails: React.FC<PlanDetailsProps> = ({ userId, profile, plan,
 
       </div>
 
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteEntry && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setConfirmDeleteEntry(null)}>
+          <div className="bg-card border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-2">Remove Entry?</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              This will remove the {confirmDeleteEntry.amount > 0 ? 'deposit' : 'withdrawal'} of{' '}
+              <span className="text-white font-medium">{Math.abs(confirmDeleteEntry.amount).toLocaleString()} EGP</span>{' '}
+              and adjust your total savings.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteEntry(null)}
+                className="flex-1 px-4 py-2 text-gray-400 hover:text-white border border-gray-700 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Savings History */}
       {(plan.savingsHistory || []).length > 0 && (
         <div className="bg-card rounded-xl border border-gray-800 overflow-hidden">
@@ -382,9 +435,19 @@ export const PlanDetails: React.FC<PlanDetailsProps> = ({ userId, profile, plan,
                   <div className="text-gray-200">{entry.note}</div>
                   <div className="text-xs text-gray-500">{new Date(entry.date).toLocaleDateString()}</div>
                 </div>
-                <span className={`font-mono font-medium ${entry.amount > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {entry.amount > 0 ? '+' : ''}{entry.amount.toLocaleString()} EGP
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className={`font-mono font-medium ${entry.amount > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {entry.amount > 0 ? '+' : ''}{entry.amount.toLocaleString()} EGP
+                  </span>
+                  <button
+                    onClick={() => setConfirmDeleteEntry(entry)}
+                    disabled={deletingEntryId === entry.id}
+                    className="w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-colors disabled:opacity-40 text-sm font-bold"
+                    title="Remove entry"
+                  >
+                    {deletingEntryId === entry.id ? '…' : '−'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -26,6 +26,20 @@ const App: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<SavingsPlan | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('savvysave-theme') as 'light' | 'dark') || 'dark';
+    }
+    return 'dark';
+  });
+
+  // Apply theme to <html>
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('savvysave-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
     const unsubscribe = authService.onAuthChange(async (firebaseUser) => {
@@ -102,13 +116,19 @@ const App: React.FC = () => {
               className="font-bold text-xl text-primary cursor-pointer flex items-center gap-2"
               onClick={() => setView(View.DASHBOARD)}
             >
-              <span className="bg-primary/20 p-1.5 rounded text-primary">$$</span>
               SavvySave
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-400 hidden sm:block">
                 Hi, <span className="text-white font-medium">{user.username}</span>
               </span>
+              <button
+                onClick={toggleTheme}
+                className="text-gray-400 hover:text-white transition-colors text-lg"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
               <button
                 onClick={() => setView(View.PROFILE_SETTINGS)}
                 className="text-gray-400 hover:text-white transition-colors text-lg"
