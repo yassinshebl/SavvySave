@@ -2,15 +2,15 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// TODO: Replace with your actual Firebase config from the Firebase Console
+// Firebase configuration pulled from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyAK58kOY2XPiCW0FNBYc9CPoz-FtMXJTsc",
-  authDomain: "savvysave-4f9cc.firebaseapp.com",
-  projectId: "savvysave-4f9cc",
-  storageBucket: "savvysave-4f9cc.firebasestorage.app",
-  messagingSenderId: "692117625129",
-  appId: "1:692117625129:web:0b24172a735d9f3c83ff38",
-  measurementId: "G-B8WXRM3SVP"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_FIREBASE_API_KEY",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "savvysave-4f9cc.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "savvysave-4f9cc",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "savvysave-4f9cc.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_FIREBASE_APP_ID",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "YOUR_FIREBASE_MEASUREMENT_ID"
 };
 
 const app = initializeApp(firebaseConfig);

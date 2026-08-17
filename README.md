@@ -10,8 +10,7 @@
 
 A smart financial planning application built for Egyptian users. Set up your profile once with your income and expenses, then create unlimited savings plans — manually or with AI. Track deposits, log spending, and get personalized AI-powered financial advice from Gemini.
 
-Supports **light & dark mode** with persistent preference.
-
+Supports **light & dark mode** with persistent user preference.
 
 🌐 **Live App:** [https://savvysave-4f9cc.web.app](https://savvysave-4f9cc.web.app)
 
@@ -64,7 +63,7 @@ Supports **light & dark mode** with persistent preference.
 - **AI Advisor** — click ✨ to get real-time financial advice from Gemini on whether you're on track
 
 ### 🎨 Appearance
-- **Light & Dark mode** — toggle from the navbar, preference saved in localStorage
+- **Light & Dark mode** — toggle from the navbar, preference saved in `localStorage`
 - Clean, modern UI with smooth theme transitions
 
 ---
@@ -102,13 +101,17 @@ savvysave/
 │   └── PlanDetails.tsx        # Full plan view with savings, chart, spending, AI advice
 │
 ├── services/
-│   ├── firebaseConfig.ts      # Firebase app initialization (Auth + Firestore)
+│   ├── firebaseConfig.ts      # Firebase app initialization (Auth + Firestore) via env vars
 │   ├── authService.ts         # Auth methods (email, Google, reset password)
 │   ├── storageService.ts      # Firestore CRUD (profile + plans + transactions + savings)
 │   └── geminiService.ts       # Gemini API (analyzePlan + generatePlan)
 │
-├── .env.local                 # Environment variables (VITE_GEMINI_API_KEY)
-├── firebase.json              # Firebase Hosting config
+├── .env.example               # Template for environment variables (safe to commit)
+├── .env.local                 # Local environment variables containing real keys (git-ignored)
+├── .gitignore                 # Git ignore rules ensuring secrets are never committed
+├── .firebaserc                # Firebase project alias mapping
+├── firebase.json              # Firebase Hosting & Firestore configuration
+├── firestore.rules            # Firestore security rules
 ├── vite.config.ts             # Vite configuration
 ├── tsconfig.json              # TypeScript configuration
 └── package.json               # Dependencies & scripts
@@ -133,6 +136,18 @@ users/
 
 ---
 
+## 🔒 Security & Environment Variables
+
+To keep your private API keys safe and hidden when committing to GitHub:
+
+1. **Local Isolation**: All private credentials live inside `.env.local`, which is matched by `.gitignore` and **never** pushed to public GitHub repositories.
+2. **Template Provided**: `.env.example` provides a template for all required and optional environment variables.
+3. **API Key Restrictions (Recommended for Production)**:
+   - **Google Gemini Key**: Restrict key usage by HTTP Referrer in [Google AI Studio / GCP Console](https://aistudio.google.com/).
+   - **Firebase API Key**: Restrict key in Google Cloud Console to only allow requests from your authorized domain (e.g. `https://savvysave-4f9cc.web.app` or `http://localhost:3000`).
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -142,8 +157,8 @@ users/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/savvysave.git
-cd savvysave
+git clone https://github.com/yassinshebl/SavvySave.git
+cd SavvySave
 ```
 
 ### 2. Install dependencies
@@ -152,13 +167,25 @@ npm install
 ```
 
 ### 3. Configure environment variables
-Create a `.env.local` file in the project root:
+Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+Open `.env.local` and set your API keys:
 ```env
 VITE_GEMINI_API_KEY=your_gemini_api_key_here
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 ```
 
 ### 4. Configure Firebase
-Update `services/firebaseConfig.ts` with your Firebase project credentials from the [Firebase Console](https://console.firebase.google.com/) → Project Settings → Web App.
+Ensure your Firebase web app parameters match the values in your `.env.local` file, or adjust `services/firebaseConfig.ts` if using custom project setups.
 
 ### 5. Run locally
 ```bash
@@ -176,12 +203,12 @@ firebase deploy --only hosting
 
 ## 🔑 Firebase Setup
 
-1. Go to [Firebase Console](https://console.firebase.google.com/) and create a new project
+1. Go to [Firebase Console](https://console.firebase.google.com/) and create a new project.
 2. Enable **Authentication** → Sign-in Providers:
    - Email/Password
    - Google
-3. Enable **Cloud Firestore** (start in test mode or configure security rules)
-4. Register a **Web App** and copy the config object into `services/firebaseConfig.ts`
+3. Enable **Cloud Firestore** (deploy rules using `firebase deploy --only firestore:rules`).
+4. Register a **Web App** and copy the config credentials into `.env.local`.
 
 ---
 
